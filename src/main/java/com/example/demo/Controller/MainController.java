@@ -4,6 +4,8 @@ import com.example.demo.Model.PaymentOrder;
 import com.example.demo.repository.PaymentOrderRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,11 +20,24 @@ public class MainController {
 
     @GetMapping("/")
     public String index() {
-        return "Homepage";
+        return "Home";
     }
 
     @GetMapping("/payment_orders")
-    public List<PaymentOrder> findAllPaymentOrders() {
+    public List<PaymentOrder> findAllPaymentOrders(@RequestParam(value = "from", required = false) String fromDate,
+                                                   @RequestParam(value = "to", required = false) String toDate) {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"); //TODO:: ADD MORE FLEXIBLE FORMATS!
+        try {
+            if (fromDate != null && toDate != null) {
+                return repository.findPaymentOrdersFromToDate(formatter.parse(fromDate), formatter.parse(toDate));
+            } else if (fromDate != null) {
+                return repository.findPaymentOrdersFromDate(formatter.parse(fromDate));
+            } else if (toDate != null) {
+                return repository.findPaymentOrdersToDate(formatter.parse(toDate));
+            }
+        } catch (ParseException e) {
+            e.printStackTrace(); //TODO:: RETURN ERROR CODE
+        }
         return repository.findAll();
     }
 

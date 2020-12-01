@@ -4,7 +4,6 @@ import com.example.demo.util.OrderStatus;
 import com.example.demo.util.OrderType;
 
 import javax.persistence.*;
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -93,11 +92,5 @@ public class PaymentOrder {
 
     public boolean isValidated() {
         return id != null && originatorAccount != null && creationDateTime != null && expiryDateTime != null && orderType != null && status != null && instructedAmount != null;
-    }
-
-
-    @Override
-    public String toString() {
-        return originatorAccount; //TODO:: COMPLETE THIS
     }
 }
