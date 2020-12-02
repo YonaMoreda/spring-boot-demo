@@ -4,6 +4,7 @@ import com.example.demo.util.OrderStatus;
 import com.example.demo.util.OrderType;
 
 import javax.persistence.*;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -11,7 +12,7 @@ import java.util.Date;
 @Table(name = "payment_order")
 public class PaymentOrder {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "originator_account", nullable = false)
@@ -91,6 +92,22 @@ public class PaymentOrder {
     }
 
     public boolean isValidated() {
-        return id != null && originatorAccount != null && creationDateTime != null && expiryDateTime != null && orderType != null && status != null && instructedAmount != null;
+        return originatorAccount != null && creationDateTime != null && expiryDateTime != null && orderType != null && status != null && instructedAmount != null;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("PaymentOrder {\n");
+        for(Field field : getClass().getDeclaredFields()) {
+            try {
+                stringBuilder.append("\t" + field.getName() + ": " + field.get(this) + ",\n");
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        stringBuilder.append("}");
+        return stringBuilder.toString();
+
     }
 }

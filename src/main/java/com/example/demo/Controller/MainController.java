@@ -26,14 +26,10 @@ public class MainController {
     @GetMapping("/payment_orders")
     public List<PaymentOrder> findAllPaymentOrders(@RequestParam(value = "from", required = false) String fromDate,
                                                    @RequestParam(value = "to", required = false) String toDate) {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"); //TODO:: ADD MORE FLEXIBLE FORMATS!
         try {
-            if (fromDate != null && toDate != null) {
-                return repository.findPaymentOrdersFromToDate(formatter.parse(fromDate), formatter.parse(toDate));
-            } else if (fromDate != null) {
-                return repository.findPaymentOrdersFromDate(formatter.parse(fromDate));
-            } else if (toDate != null) {
-                return repository.findPaymentOrdersToDate(formatter.parse(toDate));
+            List<PaymentOrder> paymentOrders = requestWithDateParameters(fromDate, toDate);
+            if (paymentOrders != null) {
+                return paymentOrders;
             }
         } catch (ParseException e) {
             e.printStackTrace(); //TODO:: RETURN ERROR CODE
@@ -41,12 +37,24 @@ public class MainController {
         return repository.findAll();
     }
 
+    private List<PaymentOrder> requestWithDateParameters(String fromDate, String toDate) throws ParseException {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"); //TODO:: ADD MORE FLEXIBLE FORMATS!
+        if (fromDate != null && toDate != null) {
+            return repository.findPaymentOrdersFromToDate(formatter.parse(fromDate), formatter.parse(toDate));
+        } else if (fromDate != null) {
+            return repository.findPaymentOrdersFromDate(formatter.parse(fromDate));
+        } else if (toDate != null) {
+            return repository.findPaymentOrdersToDate(formatter.parse(toDate));
+        }
+        return null;
+    }
+
     @PostMapping("/payment_orders")
     public PaymentOrder createPaymentOrder(@RequestBody PaymentOrder newPaymentOrder) {
         if (newPaymentOrder.isValidated()) {
             return repository.save(newPaymentOrder);
         }
-        return null; //FIXME:: RETURNING NULL!
+        return null; //FIXME:: RETURN ERROR CODE
     }
 
     @PutMapping("/payment_orders/{id}")
@@ -69,7 +77,9 @@ public class MainController {
 
     @DeleteMapping("/payment_orders/{id}")
     public void deletePaymentOrder(@PathVariable String id) {
-        repository.deleteById(Integer.parseInt(id));
+        if(repository.existsById(Integer.parseInt(id))) {
+            repository.deleteById(Integer.parseInt(id));
+        }
     }
 
     @GetMapping("/payment_orders/{id}")
