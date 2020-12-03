@@ -1,109 +1,113 @@
 package com.example.demo.Controller;
 
-import com.example.demo.Model.PaymentOrder;
-import com.example.demo.repository.PaymentOrderRepository;
-import org.springframework.web.bind.annotation.*;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Optional;
+import java.text.ParseException;
+
+import com.example.demo.Model.PaymentOrder;
+import com.example.demo.util.OrderStatus;
+import com.example.demo.util.OrderType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import com.example.demo.Service.PaymentOrderService;
 
 @RestController
 public class MainController {
 
-    private final PaymentOrderRepository repository;
+    private final PaymentOrderService service;
 
-    public MainController(PaymentOrderRepository repository) {
-        this.repository = repository;
+    public MainController(PaymentOrderService service) {
+        this.service = service;
     }
 
-    @GetMapping("/")
-    public String index() {
-        return "Home";
+    @GetMapping(value = "/")
+    public ResponseEntity<String> index() {
+        return ResponseEntity.ok("X");
     }
 
     @GetMapping("/payment_orders")
-    public List<PaymentOrder> findAllPaymentOrders(@RequestParam(value = "from", required = false) String fromDate,
-                                                   @RequestParam(value = "to", required = false) String toDate) {
+    public ResponseEntity<Optional<List<PaymentOrder>>> findAllPaymentOrders(
+            @RequestParam(value = "from", required = false) String fromDate,
+            @RequestParam(value = "to", required = false) String toDate) {
         try {
-            List<PaymentOrder> paymentOrders = requestWithDateParameters(fromDate, toDate);
-            if (paymentOrders != null) {
-                return paymentOrders;
-            }
+            return ResponseEntity.ok(service.requestWithDateParameters(fromDate, toDate));
         } catch (ParseException e) {
-            e.printStackTrace(); //TODO:: RETURN ERROR CODE
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
         }
-        return repository.findAll();
-    }
-
-    private List<PaymentOrder> requestWithDateParameters(String fromDate, String toDate) throws ParseException {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"); //TODO:: ADD MORE FLEXIBLE FORMATS!
-        if (fromDate != null && toDate != null) {
-            return repository.findPaymentOrdersFromToDate(formatter.parse(fromDate), formatter.parse(toDate));
-        } else if (fromDate != null) {
-            return repository.findPaymentOrdersFromDate(formatter.parse(fromDate));
-        } else if (toDate != null) {
-            return repository.findPaymentOrdersToDate(formatter.parse(toDate));
-        }
-        return null;
     }
 
     @PostMapping("/payment_orders")
-    public PaymentOrder createPaymentOrder(@RequestBody PaymentOrder newPaymentOrder) {
+    public ResponseEntity<Optional<PaymentOrder>> createPaymentOrder(@RequestBody PaymentOrder newPaymentOrder) {
         if (newPaymentOrder.isValidated()) {
-            return repository.save(newPaymentOrder);
+            return ResponseEntity.ok(service.insertWithQuery(newPaymentOrder));
         }
-        return null; //FIXME:: RETURN ERROR CODE
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     @PutMapping("/payment_orders/{id}")
-    public Optional<PaymentOrder> updatePaymentOrder(@RequestBody PaymentOrder updatedPaymentOrder, @PathVariable String id) {
+    public ResponseEntity<Optional<PaymentOrder>> createUpdatePaymentOrder(@RequestBody PaymentOrder updatedPaymentOrder,
+                                                                           @PathVariable String id) {
         if (updatedPaymentOrder.isValidated()) {
-            return repository.findById(Integer.parseInt(id)).map(
-                    paymentOrder -> {
-                        paymentOrder.setOriginatorAccount(updatedPaymentOrder.getOriginatorAccount());
-                        paymentOrder.setCreationDateTime(updatedPaymentOrder.getCreationDateTime());
-                        paymentOrder.setExpiryDateTime(updatedPaymentOrder.getExpiryDateTime());
-                        paymentOrder.setOrderType(updatedPaymentOrder.getOrderType());
-                        paymentOrder.setStatus(updatedPaymentOrder.getStatus());
-                        paymentOrder.setInstructedAmount(updatedPaymentOrder.getInstructedAmount());
-                        return repository.save(paymentOrder);
-                    }
-            );
+            if (service.getRepository().existsById(Integer.parseInt(id))) {
+                //updating existing entry
+                return ResponseEntity.ok(service.updateWithQuery(updatedPaymentOrder, Integer.parseInt(id)));
+            } else {
+                //creating a new entry
+                return ResponseEntity.ok(service.insertWithQuery(updatedPaymentOrder));
+            }
         }
-        return Optional.empty();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     @DeleteMapping("/payment_orders/{id}")
-    public void deletePaymentOrder(@PathVariable String id) {
-        if(repository.existsById(Integer.parseInt(id))) {
-            repository.deleteById(Integer.parseInt(id));
+    public ResponseEntity<Optional<PaymentOrder>> deletePaymentOrder(@PathVariable String id) {
+        Optional<PaymentOrder> paymentOrder = service.getRepository().findById(Integer.parseInt(id));
+        if (paymentOrder.isPresent()) {
+            service.getRepository().delete(paymentOrder.get());
+            return ResponseEntity.ok(paymentOrder);
         }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     @GetMapping("/payment_orders/{id}")
-    public Optional<PaymentOrder> findPaymentOrderById(@PathVariable String id) {
-        return repository.findById(Integer.parseInt(id));
+    public ResponseEntity<Optional<PaymentOrder>> findPaymentOrderById(@PathVariable String id) {
+        Optional<PaymentOrder> paymentOrder = service.getRepository().findById(Integer.parseInt(id));
+        if (paymentOrder.isPresent()) {
+            return ResponseEntity.ok(paymentOrder);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     @GetMapping("/payment_orders/created")
     public List<PaymentOrder> findAllCreatedOrders() {
-        return repository.findCreatedOrders();
+        return service.findOrdersByOrderStatus(OrderStatus.CREATED);
     }
 
     @GetMapping("/payment_orders/rejected")
     public List<PaymentOrder> findAllRejectedOrders() {
-        return repository.findRejectedOrders();
+        return service.findOrdersByOrderStatus(OrderStatus.REJECTED);
     }
 
     @GetMapping("/payment_orders/postponed")
     public List<PaymentOrder> findAllPostponedOrders() {
-        return repository.findPostponedOrders();
+        return service.findOrdersByOrderStatus(OrderStatus.POSTPONED);
     }
 
     @GetMapping("/payment_orders/outstanding")
     public List<PaymentOrder> findAllOutstandingOrders() {
-        return repository.findOutstandingOrders();
+        return service.findOrdersByOrderStatus(OrderStatus.OUTSTANDING);
+    }
+
+    @GetMapping("/payment_orders/credit")
+    public List<PaymentOrder> findAllCreditOrders() {
+        return service.findOrdersByOrderType(OrderType.CREDIT);
+    }
+
+    @GetMapping("/payment_orders/debit")
+    public List<PaymentOrder> findAllDebitOrders() {
+        return service.findOrdersByOrderType(OrderType.DEBIT);
     }
 }

@@ -6,7 +6,7 @@ import com.example.demo.util.OrderType;
 import javax.persistence.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.sql.Date;
 
 @Entity
 @Table(name = "payment_order")
@@ -30,7 +30,7 @@ public class PaymentOrder {
 
     @Column(name = "order_status", nullable = false)
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    private OrderStatus orderStatus;
 
     @Column(name = "instructed_amount", nullable = false)
     private BigDecimal instructedAmount;
@@ -71,16 +71,16 @@ public class PaymentOrder {
         return orderType;
     }
 
-    public void setOrderType(OrderType orderType) {
-        this.orderType = orderType;
+    public void setOrderType(OrderType ordertype) {
+        this.orderType = ordertype;
     }
 
     public OrderStatus getStatus() {
-        return status;
+        return orderStatus;
     }
 
-    public void setStatus(OrderStatus status) {
-        this.status = status;
+    public void setStatus(OrderStatus orderStatus) {
+        this.orderStatus = orderStatus;
     }
 
     public BigDecimal getInstructedAmount() {
@@ -92,7 +92,7 @@ public class PaymentOrder {
     }
 
     public boolean isValidated() {
-        return originatorAccount != null && creationDateTime != null && expiryDateTime != null && orderType != null && status != null && instructedAmount != null;
+        return originatorAccount != null && creationDateTime != null && expiryDateTime != null && orderType != null && orderStatus != null && instructedAmount != null;
     }
 
     @Override
@@ -106,7 +106,7 @@ public class PaymentOrder {
                 e.printStackTrace();
             }
         }
-        stringBuilder.append("}");
+        stringBuilder.append("}\n");
         return stringBuilder.toString();
 
     }
