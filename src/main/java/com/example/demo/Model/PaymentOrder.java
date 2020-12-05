@@ -35,6 +35,16 @@ public class PaymentOrder {
     @Column(name = "instructed_amount", nullable = false)
     private BigDecimal instructedAmount;
 
+    public PaymentOrder(Integer id, String originatorAccount, Date creationDateTime, Date expiryDateTime, OrderType orderType, OrderStatus orderStatus, BigDecimal instructedAmount) {
+        this.id = id;
+        this.originatorAccount = originatorAccount;
+        this.creationDateTime = creationDateTime;
+        this.expiryDateTime = expiryDateTime;
+        this.orderType = orderType;
+        this.orderStatus = orderStatus;
+        this.instructedAmount = instructedAmount;
+    }
+
     public Integer getId() {
         return id;
     }
@@ -99,14 +109,17 @@ public class PaymentOrder {
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("PaymentOrder {\n");
-        for(Field field : getClass().getDeclaredFields()) {
+        String prefix = "";
+        for (Field field : getClass().getDeclaredFields()) {
             try {
-                stringBuilder.append("\t" + field.getName() + ": " + field.get(this) + ",\n");
+                stringBuilder.append(prefix);
+                prefix = ",\n";
+                stringBuilder.append("\t" + field.getName() + ": " + field.get(this));
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
-        stringBuilder.append("}\n");
+        stringBuilder.append("\n}\n");
         return stringBuilder.toString();
 
     }

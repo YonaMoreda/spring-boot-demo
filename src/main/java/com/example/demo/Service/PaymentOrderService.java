@@ -3,6 +3,7 @@ package com.example.demo.Service;
 import com.example.demo.util.OrderStatus;
 import com.example.demo.Model.PaymentOrder;
 import com.example.demo.util.OrderType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.demo.Repository.PaymentOrderRepository;
 
@@ -25,11 +26,12 @@ public class PaymentOrderService {
         this.repository = repository;
     }
 
+
     public PaymentOrderRepository getRepository() {
         return repository;
     }
 
-    public Optional<PaymentOrder> insertWithQuery(PaymentOrder paymentOrder) { //TODO:: EXTRACT TO SERVICE
+    public Optional<PaymentOrder> insertWithQuery(PaymentOrder paymentOrder) {
         try {
             Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres_demo",
                     "postgres", "admin");
