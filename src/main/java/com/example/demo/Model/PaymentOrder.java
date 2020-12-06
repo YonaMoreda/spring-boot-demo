@@ -8,6 +8,9 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Date;
 
+/**
+ * Payment order entity, holds information for a payment order.
+ */
 @Entity
 @Table(name = "payment_order")
 public class PaymentOrder {
@@ -34,16 +37,6 @@ public class PaymentOrder {
 
     @Column(name = "instructed_amount", nullable = false)
     private BigDecimal instructedAmount;
-
-    public PaymentOrder(Integer id, String originatorAccount, Date creationDateTime, Date expiryDateTime, OrderType orderType, OrderStatus orderStatus, BigDecimal instructedAmount) {
-        this.id = id;
-        this.originatorAccount = originatorAccount;
-        this.creationDateTime = creationDateTime;
-        this.expiryDateTime = expiryDateTime;
-        this.orderType = orderType;
-        this.orderStatus = orderStatus;
-        this.instructedAmount = instructedAmount;
-    }
 
     public Integer getId() {
         return id;

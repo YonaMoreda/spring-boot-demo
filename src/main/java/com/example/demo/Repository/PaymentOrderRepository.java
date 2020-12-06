@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Extended JPA repository interface for CRUD actions on the Payment Order database
+ */
 public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Integer> {
 
     @Query("SELECT pOrd FROM PaymentOrder pOrd where pOrd.orderStatus = 'CREATED'")
