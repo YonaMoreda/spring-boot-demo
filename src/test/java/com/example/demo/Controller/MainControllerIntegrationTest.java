@@ -23,7 +23,16 @@ class MainControllerIntegrationTest {
     void index() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Home"));
+                .andExpect(content().string("{ \"links\": [" +
+                        "\"/payment_orders\"," +
+                        "\"/payment_orders/{id}\"," +
+                        "\"/payment_orders/created\"," +
+                        "\"/payment_orders/rejected\"," +
+                        "\"/payment_orders/postponed\"," +
+                        "\"/payment_orders/outstanding\"," +
+                        "\"/payment_orders/credit\"," +
+                        "\"/payment_orders/debit\"" +
+                        "]}"));
     }
 
     @Test
