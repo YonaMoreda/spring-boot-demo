@@ -130,18 +130,18 @@ public class PaymentOrderService {
      * @param orderStatus category field for filtering/creating a list of payment orders
      * @return filtered list of payment orders by Order Status
      */
-    public List<PaymentOrder> findOrdersByOrderStatus(OrderStatus orderStatus) {
+    public Optional<List<PaymentOrder>> findOrdersByOrderStatus(OrderStatus orderStatus) {
         switch (orderStatus) {
             case CREATED:
-                return repository.findCreatedOrders();
+                return Optional.of(repository.findCreatedOrders());
             case REJECTED:
-                return repository.findRejectedOrders();
+                return Optional.of(repository.findRejectedOrders());
             case POSTPONED:
-                return repository.findPostponedOrders();
+                return Optional.of(repository.findPostponedOrders());
             case OUTSTANDING:
-                return repository.findOutstandingOrders();
+                return Optional.of(repository.findOutstandingOrders());
         }
-        return new ArrayList<>();
+        return Optional.empty();
     }
 
     /**
@@ -149,13 +149,13 @@ public class PaymentOrderService {
      * @param orderType category field for filtering/creating a list of payment orders
      * @return filtered list of payment orders by Order Type
      */
-    public List<PaymentOrder> findOrdersByOrderType(OrderType orderType) {
+    public Optional<List<PaymentOrder>> findOrdersByOrderType(OrderType orderType) {
         switch (orderType) {
             case CREDIT:
-                return repository.findCreditOrders();
+                return Optional.of(repository.findCreditOrders());
             case DEBIT:
-                return repository.findDebitOrders();
+                return Optional.of(repository.findDebitOrders());
         }
-        return new ArrayList<>();
+        return Optional.empty();
     }
 }

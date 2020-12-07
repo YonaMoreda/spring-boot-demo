@@ -2,6 +2,8 @@ package com.example.demo.Model;
 
 import com.example.demo.util.OrderStatus;
 import com.example.demo.util.OrderType;
+import net.minidev.json.JSONObject;
+import org.springframework.hateoas.RepresentationModel;
 
 import javax.persistence.*;
 import java.lang.reflect.Field;
@@ -13,7 +15,8 @@ import java.sql.Date;
  */
 @Entity
 @Table(name = "payment_order")
-public class PaymentOrder {
+public class PaymentOrder extends RepresentationModel<PaymentOrder> {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -100,20 +103,14 @@ public class PaymentOrder {
 
     @Override
     public String toString() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("PaymentOrder {\n");
-        String prefix = "";
-        for (Field field : getClass().getDeclaredFields()) {
-            try {
-                stringBuilder.append(prefix);
-                prefix = ",\n";
-                stringBuilder.append("\t" + field.getName() + ": " + field.get(this));
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
+        JSONObject jsonObject = new JSONObject();
+        try {
+            for (Field field : getClass().getDeclaredFields()) {
+                jsonObject.put(field.getName(), field.get(this));
             }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
         }
-        stringBuilder.append("\n}\n");
-        return stringBuilder.toString();
-
+        return jsonObject.toString();
     }
 }

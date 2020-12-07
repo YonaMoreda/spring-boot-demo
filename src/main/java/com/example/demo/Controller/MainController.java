@@ -12,6 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.example.demo.Service.PaymentOrderService;
 
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 /**
  * Main Controller class for handling HTTP requests
  */
@@ -29,17 +33,13 @@ public class MainController {
      * @return links to other resources
      */
     @GetMapping(value = "/")
-    public ResponseEntity<String> index() {
-        return ResponseEntity.ok("{ \"links\": [" +
-                "\"/payment_orders\"," +
-                "\"/payment_orders/{id}\"," +
-                "\"/payment_orders/created\"," +
-                "\"/payment_orders/rejected\"," +
-                "\"/payment_orders/postponed\"," +
-                "\"/payment_orders/outstanding\"," +
-                "\"/payment_orders/credit\"," +
-                "\"/payment_orders/debit\"" +
-                "]}");
+    public ResponseEntity<?> index() {
+        PaymentOrder pOrd = new PaymentOrder();
+        pOrd.add(linkTo(methodOn(MainController.class).index()).withSelfRel());
+        pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+        addHyperMediaLinks(pOrd);
+
+        return ResponseEntity.ok(pOrd);
     }
 
     /**
@@ -49,15 +49,41 @@ public class MainController {
      * @return list of payment orders
      */
     @GetMapping("/payment_orders")
-    public ResponseEntity<Optional<List<PaymentOrder>>> findAllPaymentOrders(
+    public ResponseEntity<?> findAllPaymentOrders(
             @RequestParam(value = "from", required = false) String fromDate,
             @RequestParam(value = "to", required = false) String toDate) {
         try {
-            return ResponseEntity.ok(service.requestWithDateParameters(fromDate, toDate));
+            Optional<List<PaymentOrder>> paymentOrders = service.requestWithDateParameters(fromDate, toDate);
+            if(paymentOrders.isPresent()) {
+                for (PaymentOrder pOrd : paymentOrders.get()){
+                    pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(fromDate, toDate)).withSelfRel());
+                    pOrd.add(linkTo(methodOn(MainController.class).index()).withRel("index"));
+                    addHyperMediaLinks(pOrd);
+                }
+            }
+            return ResponseEntity.ok(paymentOrders);
         } catch (ParseException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
         }
+    }
+
+    /**
+     * Helper function to add Hyper media links
+     * @param pOrd Response PaymentOrder object to which Hyper media links are added
+     */
+    private void addHyperMediaLinks(PaymentOrder pOrd) {
+        pOrd.add(linkTo(methodOn(MainController.class).createPaymentOrder(null)).withRel("post_payment_order"));
+        pOrd.add(linkTo(methodOn(MainController.class).createUpdatePaymentOrder(null, null)).withRel("put_payment_order"));
+        pOrd.add(linkTo(methodOn(MainController.class).deletePaymentOrder(null)).withRel("delete_payment_order"));
+
+        pOrd.add(linkTo(methodOn(MainController.class).findPaymentOrderById(null)).withRel("find_by_id"));
+        pOrd.add(linkTo(methodOn(MainController.class).findAllCreatedOrders()).withRel("created"));
+        pOrd.add(linkTo(methodOn(MainController.class).findAllRejectedOrders()).withRel("rejected"));
+        pOrd.add(linkTo(methodOn(MainController.class).findAllPostponedOrders()).withRel("postponed"));
+        pOrd.add(linkTo(methodOn(MainController.class).findAllOutstandingOrders()).withRel("outstanding"));
+        pOrd.add(linkTo(methodOn(MainController.class).findAllCreditOrders()).withRel("credit"));
+        pOrd.add(linkTo(methodOn(MainController.class).findAllDebitOrders()).withRel("debit"));
     }
 
     /**
@@ -66,9 +92,11 @@ public class MainController {
      * @return inserted payment order or empty if unsuccessful
      */
     @PostMapping("/payment_orders")
-    public ResponseEntity<Optional<PaymentOrder>> createPaymentOrder(@RequestBody PaymentOrder newPaymentOrder) {
+    public ResponseEntity<?> createPaymentOrder(@RequestBody PaymentOrder newPaymentOrder) {
         if (newPaymentOrder.isValidated()) {
-            return ResponseEntity.ok(service.insertWithQuery(newPaymentOrder));
+            Optional<PaymentOrder> pOrd =  service.insertWithQuery(newPaymentOrder);
+            pOrd.get().add(linkTo(methodOn(MainController.class).createPaymentOrder(newPaymentOrder)).withSelfRel());
+            return ResponseEntity.ok(pOrd);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
@@ -80,15 +108,19 @@ public class MainController {
      * @return inserted/updated payment order or empty if unsuccessful
      */
     @PutMapping("/payment_orders/{id}")
-    public ResponseEntity<Optional<PaymentOrder>> createUpdatePaymentOrder(@RequestBody PaymentOrder updatedPaymentOrder,
+    public ResponseEntity<?> createUpdatePaymentOrder(@RequestBody PaymentOrder updatedPaymentOrder,
                                                                            @PathVariable String id) {
         if (updatedPaymentOrder.isValidated()) {
             if (service.getRepository().existsById(Integer.parseInt(id))) {
                 //updating existing entry
-                return ResponseEntity.ok(service.updateWithQuery(updatedPaymentOrder, Integer.parseInt(id)));
+                Optional<PaymentOrder> pOrd = service.updateWithQuery(updatedPaymentOrder, Integer.parseInt(id));
+                pOrd.get().add(linkTo(methodOn(MainController.class).createUpdatePaymentOrder(updatedPaymentOrder, id)).withSelfRel());
+                return ResponseEntity.ok(pOrd);
             } else {
                 //creating a new entry
-                return ResponseEntity.ok(service.insertWithQuery(updatedPaymentOrder));
+                Optional<PaymentOrder> pOrd = service.insertWithQuery(updatedPaymentOrder);
+                pOrd.get().add(linkTo(methodOn(MainController.class).createUpdatePaymentOrder(updatedPaymentOrder, id)).withSelfRel());
+                return ResponseEntity.ok(pOrd);
             }
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
@@ -100,10 +132,11 @@ public class MainController {
      * @return deleted payment order
      */
     @DeleteMapping("/payment_orders/{id}")
-    public ResponseEntity<Optional<PaymentOrder>> deletePaymentOrder(@PathVariable String id) {
+    public ResponseEntity<?> deletePaymentOrder(@PathVariable String id) {
         Optional<PaymentOrder> paymentOrder = service.getRepository().findById(Integer.parseInt(id));
         if (paymentOrder.isPresent()) {
             service.getRepository().delete(paymentOrder.get());
+            paymentOrder.get().add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
             return ResponseEntity.ok(paymentOrder);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
@@ -115,9 +148,13 @@ public class MainController {
      * @return the payment order with the given id
      */
     @GetMapping("/payment_orders/{id}")
-    public ResponseEntity<Optional<PaymentOrder>> findPaymentOrderById(@PathVariable String id) {
-        Optional<PaymentOrder> paymentOrder = service.getRepository().findById(Integer.parseInt(id));
-        if (paymentOrder.isPresent()) {
+    public ResponseEntity<?> findPaymentOrderById(@PathVariable String id) {
+        Optional<PaymentOrder> paymentOrderOptional = service.getRepository().findById(Integer.parseInt(id));
+        if(paymentOrderOptional.isPresent()) {
+            PaymentOrder paymentOrder = paymentOrderOptional.get();
+            paymentOrder.add(linkTo(methodOn(MainController.class).findPaymentOrderById(id)).withSelfRel());
+            paymentOrder.add(linkTo(methodOn(MainController.class).deletePaymentOrder(id)).withRel("delete"));
+            paymentOrder.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
             return ResponseEntity.ok(paymentOrder);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
@@ -128,8 +165,16 @@ public class MainController {
      * @return list of created payment orders
      */
     @GetMapping("/payment_orders/created")
-    public List<PaymentOrder> findAllCreatedOrders() {
-        return service.findOrdersByOrderStatus(OrderStatus.CREATED);
+    public ResponseEntity<?> findAllCreatedOrders() {
+        Optional<List<PaymentOrder>> paymentOrders = service.findOrdersByOrderStatus(OrderStatus.CREATED);
+        if(paymentOrders.isPresent()) {
+            for(PaymentOrder pOrd : paymentOrders.get()) {
+                pOrd.add(linkTo(methodOn(MainController.class).findAllCreatedOrders()).withSelfRel());
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+            }
+            return ResponseEntity.ok(paymentOrders);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     /**
@@ -137,8 +182,16 @@ public class MainController {
      * @return list of rejected payment orders
      */
     @GetMapping("/payment_orders/rejected")
-    public List<PaymentOrder> findAllRejectedOrders() {
-        return service.findOrdersByOrderStatus(OrderStatus.REJECTED);
+    public ResponseEntity<?> findAllRejectedOrders() {
+        Optional<List<PaymentOrder>> paymentOrders = service.findOrdersByOrderStatus(OrderStatus.REJECTED);
+        if(paymentOrders.isPresent()) {
+            for(PaymentOrder pOrd : paymentOrders.get()) {
+                pOrd.add(linkTo(methodOn(MainController.class).findAllRejectedOrders()).withSelfRel());
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+            }
+            return ResponseEntity.ok(paymentOrders);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     /**
@@ -146,8 +199,16 @@ public class MainController {
      * @return list of postponed payment orders
      */
     @GetMapping("/payment_orders/postponed")
-    public List<PaymentOrder> findAllPostponedOrders() {
-        return service.findOrdersByOrderStatus(OrderStatus.POSTPONED);
+    public ResponseEntity<?> findAllPostponedOrders() {
+        Optional<List<PaymentOrder>> paymentOrders = service.findOrdersByOrderStatus(OrderStatus.POSTPONED);
+        if(paymentOrders.isPresent()) {
+            for(PaymentOrder pOrd : paymentOrders.get()) {
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPostponedOrders()).withSelfRel());
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+            }
+            return ResponseEntity.ok(paymentOrders);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     /**
@@ -155,8 +216,16 @@ public class MainController {
      * @return list of outstanding payment orders
      */
     @GetMapping("/payment_orders/outstanding")
-    public List<PaymentOrder> findAllOutstandingOrders() {
-        return service.findOrdersByOrderStatus(OrderStatus.OUTSTANDING);
+    public ResponseEntity<?> findAllOutstandingOrders() {
+        Optional<List<PaymentOrder>> paymentOrders = service.findOrdersByOrderStatus(OrderStatus.OUTSTANDING);
+        if(paymentOrders.isPresent()) {
+            for(PaymentOrder pOrd : paymentOrders.get()) {
+                pOrd.add(linkTo(methodOn(MainController.class).findAllOutstandingOrders()).withSelfRel());
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+            }
+            return ResponseEntity.ok(paymentOrders);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     /**
@@ -164,8 +233,16 @@ public class MainController {
      * @return list of credit payment orders
      */
     @GetMapping("/payment_orders/credit")
-    public List<PaymentOrder> findAllCreditOrders() {
-        return service.findOrdersByOrderType(OrderType.CREDIT);
+    public ResponseEntity<?> findAllCreditOrders() {
+        Optional<List<PaymentOrder>> paymentOrders = service.findOrdersByOrderType(OrderType.CREDIT);
+        if(paymentOrders.isPresent()) {
+            for(PaymentOrder pOrd : paymentOrders.get()) {
+                pOrd.add(linkTo(methodOn(MainController.class).findAllCreditOrders()).withSelfRel());
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+            }
+            return ResponseEntity.ok(paymentOrders);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 
     /**
@@ -173,7 +250,15 @@ public class MainController {
      * @return list of debit payment orders
      */
     @GetMapping("/payment_orders/debit")
-    public List<PaymentOrder> findAllDebitOrders() {
-        return service.findOrdersByOrderType(OrderType.DEBIT);
+    public ResponseEntity<?> findAllDebitOrders() {
+        Optional<List<PaymentOrder>> paymentOrders = service.findOrdersByOrderType(OrderType.DEBIT);
+        if(paymentOrders.isPresent()) {
+            for(PaymentOrder pOrd : paymentOrders.get()) {
+                pOrd.add(linkTo(methodOn(MainController.class).findAllDebitOrders()).withSelfRel());
+                pOrd.add(linkTo(methodOn(MainController.class).findAllPaymentOrders(null, null)).withRel("payment_orders"));
+            }
+            return ResponseEntity.ok(paymentOrders);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
     }
 }
