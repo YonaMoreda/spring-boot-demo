@@ -2,7 +2,10 @@ package com.example.demo.Model;
 
 import com.example.demo.util.OrderStatus;
 import com.example.demo.util.OrderType;
+import lombok.Getter;
+import lombok.Setter;
 import net.minidev.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.hateoas.RepresentationModel;
 
 import javax.persistence.*;
@@ -14,7 +17,7 @@ import java.sql.Date;
  * Payment order entity, holds information for a payment order.
  */
 @Entity
-@Table(name = "payment_order")
+//@Table(name = "payment_order")
 public class PaymentOrder extends RepresentationModel<PaymentOrder> {
 
     @Id

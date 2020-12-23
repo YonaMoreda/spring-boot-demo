@@ -63,7 +63,7 @@ public class MainController {
             }
             return ResponseEntity.ok(paymentOrders);
         } catch (ParseException e) {
-            e.printStackTrace();
+            e.printStackTrace(); //todo:: add logging
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
         }
     }

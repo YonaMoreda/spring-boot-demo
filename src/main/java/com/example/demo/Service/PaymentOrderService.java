@@ -3,9 +3,14 @@ package com.example.demo.Service;
 import com.example.demo.util.OrderStatus;
 import com.example.demo.Model.PaymentOrder;
 import com.example.demo.util.OrderType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.example.demo.Repository.PaymentOrderRepository;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
 import java.sql.Connection;
@@ -23,9 +28,15 @@ import java.text.SimpleDateFormat;
 public class PaymentOrderService {
 
     private final PaymentOrderRepository repository;
+    @PersistenceContext
+    EntityManager em;
+
+    @Value("${env.prop.value}")
+    private String environment;
 
     /**
      * Create payment order service with repository
+     *
      * @param repository JpaRepository to provide access functions to payment order
      */
     public PaymentOrderService(PaymentOrderRepository repository) {
@@ -34,6 +45,7 @@ public class PaymentOrderService {
 
     /**
      * gets payment order repository
+     *
      * @return payment order repository
      */
     public PaymentOrderRepository getRepository() {
@@ -42,14 +54,18 @@ public class PaymentOrderService {
 
     /**
      * Inserts a Payment order to database (repository)
+     *
      * @param paymentOrder payment order to be inserted
      * @return inserted payment order if successful, empty when not successful
      */
     public Optional<PaymentOrder> insertWithQuery(PaymentOrder paymentOrder) {
+
+        //TODO:: DONT INTERACT WITH DB THIS WAY
+
         try {
             Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres_demo",
                     "postgres", "admin");
-            String table = "payment_order(originator_account, creation_date_time, expiry_date_time, order_type, " +
+            String table = "payment_order" + environment + "(originator_account, creation_date_time, expiry_date_time, order_type, " +
                     "order_status, instructed_amount)";
             PreparedStatement preparedStatement = con.prepareStatement("insert into " + table +
                     " values (?, ?, ?, ?::\"order_type\", ?::\"status\", ?);");
@@ -62,17 +78,38 @@ public class PaymentOrderService {
         }
         return Optional.of(paymentOrder);
     }
+//        System.out.println("RESULT");// + result);
+//        em.getTransaction().begin();
+//
+//        String table = "payment_order(originator_account, creation_date_time, expiry_date_time, order_type, " +
+//                "order_status, instructed_amount)";
+//
+//
+//        TypedQuery<PaymentOrder> query = em.createQuery("insert into payment_order(originator_account, creation_date_time, expiry_date_time, order_type, order_status, instructed_amount) values (?1, ?2, ?3, ?4::\"order_type\", ?5::\"status\", ?6)", PaymentOrder.class);
+//
+//        PaymentOrder result = query
+//                .setParameter(1, paymentOrder.getOriginatorAccount())
+//                .setParameter(2, paymentOrder.getCreationDateTime())
+//                .setParameter(3, paymentOrder.getExpiryDateTime())
+//                .setParameter(4, paymentOrder.getOrderType().name())
+//                .setParameter(5, paymentOrder.getOrderStatus().name())
+//                .setParameter(6, paymentOrder.getInstructedAmount())
+//                .getSingleResult();
+//        em.getTransaction().commit();
+//        return Optional.of(paymentOrder);
+//}
 
     /**
      * Updates a payment order to database (repository)
+     *
      * @param paymentOrder payment order to be updated
-     * @param id identifying variable for payment order to be updated
+     * @param id           identifying variable for payment order to be updated
      * @return updated payment order if successful, empty when not successful
      */
     public Optional<PaymentOrder> updateWithQuery(PaymentOrder paymentOrder, Integer id) {
         try {
             Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres_demo", "postgres", "admin");
-            PreparedStatement preparedStatement = con.prepareStatement("update payment_order set " +
+            PreparedStatement preparedStatement = con.prepareStatement("update payment_order" + environment + " set " +
                     "originator_account = ?," +
                     "creation_date_time = ?," +
                     "expiry_date_time =  ?," +
@@ -93,7 +130,8 @@ public class PaymentOrderService {
 
     /**
      * Helper function to set payment order fields when constructing database query
-     * @param paymentOrder payment order object for which query is constructed
+     *
+     * @param paymentOrder      payment order object for which query is constructed
      * @param preparedStatement the query statement prepared using paymentOrder
      * @throws SQLException SQL exception when constructing statement
      */
@@ -108,8 +146,9 @@ public class PaymentOrderService {
 
     /**
      * Requests payment orders via From and To Date parameters on the creation date of payment orders
+     *
      * @param fromDate start date for the list of payment orders after this date
-     * @param toDate end date for the list of payment orders before this date
+     * @param toDate   end date for the list of payment orders before this date
      * @return List of payment orders after fromDate and before toDate
      * @throws ParseException fromDate and toDate are correctly parsed to java.util.date
      */
@@ -127,6 +166,7 @@ public class PaymentOrderService {
 
     /**
      * Finds a list of payment orders by their order status field
+     *
      * @param orderStatus category field for filtering/creating a list of payment orders
      * @return filtered list of payment orders by Order Status
      */
@@ -146,6 +186,7 @@ public class PaymentOrderService {
 
     /**
      * Finds a list of payment orders by their order type field
+     *
      * @param orderType category field for filtering/creating a list of payment orders
      * @return filtered list of payment orders by Order Type
      */
